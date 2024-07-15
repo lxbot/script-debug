@@ -1,62 +1,34 @@
 package main
 
 import (
-	"fmt"
-	"plugin"
-	"strings"
+	"github.com/lxbot/lxlib/v2"
+	"github.com/lxbot/lxlib/v2/common"
 )
 
 type M = map[string]interface{}
 
-var store *plugin.Plugin
+func main() {
+	script, messageCh := lxlib.NewScript()
 
-func Boot(s *plugin.Plugin, c *chan M) {
-	store = s
-}
+	for {
+		message := <-*messageCh
 
-func OnMessage() []func(M) M {
-	return []func(M) M{
-		func(msg M) M {
-			text := msg["message"].(M)["text"].(string)
-			last := get(msg)
-			set(msg, text)
-			if last != "" {
-				msg["message"].(M)["text"] = "last: "+last+"\n"+text
-			}
-			if strings.HasPrefix(text, "reply ") {
-				msg["mode"] = "reply"
-			} else {
-				msg["mode"] = "send"
-			}
-			return msg
-		},
+		common.TraceLog("(script)", "lxlib.listen()", "event received", "message:", message)
+
+		response, err := message.Copy()
+		if err != nil {
+			common.ErrorLog("message copy error:", err)
+			continue
+		}
+
+		key := "last_msg_" + message.User.ID
+
+		lastMessage := script.GetStorage(key)
+		if lastMessage == nil {
+			lastMessage = ""
+		}
+		script.SetStorage(key, message.Contents[0].Text)
+
+		script.SendMessage(response.Reply().ResetContents().AddContent("last message: '" + lastMessage.(string) + "'"))
 	}
-}
-
-func get(m M) string {
-	fn, err := store.Lookup("Get")
-	if err != nil {
-		_ = fmt.Errorf("%v", err)
-		return ""
-	}
-	result := fn.(func(string) interface{})(key(m))
-	if result == nil {
-		return ""
-	}
-	return result.(string)
-}
-
-func set(m M, value string) {
-	fn, err := store.Lookup("Set")
-	if err != nil {
-		_ = fmt.Errorf("%v", err)
-		return
-	}
-	fn.(func(string, interface{}))(key(m), value)
-}
-
-func key(m M) string {
-	roomID := m["room"].(M)["id"].(string)
-	userID := m["user"].(M)["id"].(string)
-	return "last_msg_" + roomID + "_" + userID
 }

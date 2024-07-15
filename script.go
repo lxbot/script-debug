@@ -12,6 +12,9 @@ func main() {
 
 	for {
 		message := <-*messageCh
+
+		common.TraceLog("(script)", "lxlib.listen()", "event received", "message:", message)
+
 		response, err := message.Copy()
 		if err != nil {
 			common.ErrorLog("message copy error:", err)

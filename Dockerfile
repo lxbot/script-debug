@@ -1,4 +1,4 @@
-FROM golang:1.13.6-alpine3.11 as builder
+FROM golang:1.22.5-alpine3.20 as builder
 
 ARG GOLANG_NAMESPACE="github.com/lxbot/script-debug"
 ENV GOLANG_NAMESPACE="$GOLANG_NAMESPACE"
@@ -16,7 +16,7 @@ RUN mv /go/src/$GOLANG_NAMESPACE/script-debug.so /lxbot/scripts/
 
 # ====================================================================================
 
-FROM alpine
+FROM alpine:3.20
 
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /etc/localtime /etc/localtime
